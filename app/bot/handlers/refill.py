@@ -3,9 +3,9 @@ from aiogram import Router, F
 
 import app.bot.messages as msg
 
-import app.bot.database.requests as rq
 from app.bot.states import Refill
 from aiogram.fsm.context import FSMContext
+from app.kafka_producer import produce_msg
 
 router_refill = Router()
 
@@ -15,10 +15,13 @@ async def create_reminder(message: Message, state: FSMContext):
     await message.answer(msg.refill)
 
 @router_refill.message(Refill.money)
-async def get_year(message: Message, state: FSMContext):
+async def get_money(message: Message, state: FSMContext):
     try:
         int(message.text)
     except:
         await message.answer("Введено не число")
     finally:
+        await produce_msg('balances', {'command': 'refill_balance',
+                                       'tg_id': message.from_user.id, 'money': int(message.text)})
         await state.update_data(money=message.text)
+        await message.answer("Баланс пополнен")
